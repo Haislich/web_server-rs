@@ -1,4 +1,4 @@
-use crate::http::request;
+use crate::http::request::{self, ParseError};
 use request::Request;
 use std::convert::TryFrom;
 use std::io::Read;
@@ -7,6 +7,7 @@ const BUF_SIZE: usize = 1024;
 pub struct Server {
     address: String,
 }
+fn consume(buf: [u8; 1024]) {}
 impl Server {
     pub fn new(address: String) -> Self {
         Server { address }
@@ -20,22 +21,18 @@ impl Server {
                 Ok((mut tcp_stream, _socket_addr)) => {
                     println!("Connection accepted.{:?}", tcp_stream);
                     let mut buf = [0; BUF_SIZE];
-                    match tcp_stream.read(&mut buf) {
+                    let request: Result<Request, ParseError> = match tcp_stream.read(&mut buf) {
                         Ok(n) => {
-                            if n >= BUF_SIZE || n <= 0 {
-                                println!("Invalid incoming message")
+                            if n >= BUF_SIZE || n == 0 {
+                                Err(ParseError::InvalidRequest)
                             } else {
-                                println!("Recieved : {}", String::from_utf8_lossy(&buf));
-                                match Request::try_from(&buf[..]) {
-                                    Ok(request) => {
-                                        println!("ciao")
-                                    }
-                                    Err(e) => println!("Error while parsing the request : {}", e),
-                                }
+                                Request::try_from(&buf[..])
                             }
                         }
-                        Err(e) => println!("Failed reading from socket: {e}"),
+                        Err(e) => Err(ParseError::InvalidRequest),
                     };
+                    //buf = [0; BUF_SIZE];
+                    println!("{:?}", request);
                 }
                 Err(e) => eprintln!("Failed to establish a connection: {}.", e),
             }
