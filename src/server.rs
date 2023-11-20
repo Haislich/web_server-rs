@@ -1,40 +1,40 @@
-use crate::http::request::{self, ParseError};
-use request::Request;
+use crate::http::{ParseError, Request, Response, StatusCode};
 use std::convert::TryFrom;
 use std::io::Read;
 use std::net::TcpListener;
 const BUF_SIZE: usize = 1024;
+pub trait Handler {
+    fn handle_request(&mut self, request: &Request) -> Response;
+    fn handle_error(&mut self, error: &ParseError) -> Response {
+        println!("Failed to parse request: {}", error);
+        Response::new(StatusCode::BadRequest, None)
+    }
+}
 pub struct Server {
     address: String,
 }
-fn consume(buf: [u8; 1024]) {}
 impl Server {
     pub fn new(address: String) -> Self {
         Server { address }
     }
-    pub fn run(self) {
+    pub fn run(self, mut handler: impl Handler) {
         println!("Listening on {}", self.address);
         let listener = TcpListener::bind(self.address).unwrap();
 
         loop {
-            match listener.accept() {
-                Ok((mut tcp_stream, _socket_addr)) => {
-                    println!("Connection accepted.{:?}", tcp_stream);
-                    let mut buf = [0; BUF_SIZE];
-                    let request: Result<Request, ParseError> = match tcp_stream.read(&mut buf) {
-                        Ok(n) => {
-                            if n >= BUF_SIZE || n == 0 {
-                                Err(ParseError::InvalidRequest)
-                            } else {
-                                Request::try_from(&buf[..])
-                            }
-                        }
-                        Err(e) => Err(ParseError::InvalidRequest),
-                    };
-                    //buf = [0; BUF_SIZE];
-                    println!("{:?}", request);
+            let (mut tcp_stream, _socket_addr) = listener.accept().unwrap();
+            println!("Connection accepted.{:?}", tcp_stream);
+            let mut buf = [0; BUF_SIZE];
+            tcp_stream.read(&mut buf).unwrap();
+            let response = match Request::try_from(&buf[..]) {
+                Ok(request) => handler.handle_request(&request),
+                Err(e) => {
+                    eprintln!("Found error {:?}", e);
+                    handler.handle_error(&e)
                 }
-                Err(e) => eprintln!("Failed to establish a connection: {}.", e),
+            };
+            if let Err(e) = response.send(&mut tcp_stream) {
+                println!("Failed to send response {}", e);
             }
         }
     }

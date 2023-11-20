@@ -20,6 +20,17 @@ pub struct Request<'buf> {
     path: &'buf str, //String, -> Changin from String to &str assures that no useless heap allocation happen.
     query: Option<Query<'buf>>, //Option<&str>, -> Changin from String to &str assures that no useless heap allocation happen.
 }
+impl<'buf> Request<'buf> {
+    pub fn path(&self) -> &str {
+        self.path
+    }
+    pub fn method(&self) -> &Method {
+        &self.method
+    }
+    pub fn query(&self) -> Option<&Query> {
+        self.query.as_ref()
+    }
+}
 impl<'buf> TryFrom<&'buf [u8]> for Request<'buf> {
     // The lifetime here assures us that we cannot deallocate the buffer before deallocating the request.
     type Error = ParseError;
