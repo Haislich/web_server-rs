@@ -1,4 +1,4 @@
-use super::Method;
+use super::{Method, Query};
 use std::convert::TryFrom;
 use std::error::Error;
 use std::fmt::{Display, Formatter, Result as FmtResult};
@@ -18,7 +18,7 @@ pub struct Request<'buf> {
     // This means that the request struct is generic over a lifetime
     method: Method,
     path: &'buf str, //String, -> Changin from String to &str assures that no useless heap allocation happen.
-    query: Option<&'buf str>, //Option<&str>, -> Changin from String to &str assures that no useless heap allocation happen.
+    query: Option<Query<'buf>>, //Option<&str>, -> Changin from String to &str assures that no useless heap allocation happen.
 }
 impl<'buf> TryFrom<&'buf [u8]> for Request<'buf> {
     // The lifetime here assures us that we cannot deallocate the buffer before deallocating the request.
@@ -27,7 +27,6 @@ impl<'buf> TryFrom<&'buf [u8]> for Request<'buf> {
         let request = str::from_utf8(buf)?;
 
         let (method, request) = get_next_word(request).ok_or(ParseError::InvalidRequest)?;
-        println!("{method}");
         let (mut path, request) = get_next_word(request).ok_or(ParseError::InvalidRequest)?;
         let (protocol, _) = get_next_word(request).ok_or(ParseError::InvalidRequest)?;
 
@@ -39,7 +38,7 @@ impl<'buf> TryFrom<&'buf [u8]> for Request<'buf> {
 
         let mut query = None;
         if let Some(i) = path.find('?') {
-            query = Some(&path[i + 1..]);
+            query = Some(Query::from(&path[i + 1..]));
             path = &path[..i];
         };
 

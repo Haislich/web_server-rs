@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+#[derive(Debug, PartialEq)]
 pub struct Query<'buf> {
     data: HashMap<&'buf str, Value<'buf>>,
 }
@@ -31,12 +32,11 @@ impl<'buf> From<&'buf str> for Query<'buf> {
                     .or_insert(Value::Single(""));
             }
         });
-        println! {"{:?}",data};
         Self { data }
     }
 }
 // Some query specify a pair of key value while some other have a pair of key: multiple values
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Value<'buf> {
     Single(&'buf str),
     Multiple(Vec<&'buf str>),
