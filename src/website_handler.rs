@@ -17,23 +17,25 @@ impl WebsiteHandler {
         } else {
             format!("{}/{}", self.public_path, file_name)
         };
-        canonicalize(path).map_or(None, |path| {
-            if path.starts_with(canonicalize(&self.public_path).unwrap()) {
-                read_to_string(path).ok()
-            } else {
-                None
+        match (canonicalize(path), canonicalize(&self.public_path)) {
+            (Ok(path), Ok(public_path)) => {
+                if path.starts_with(public_path) {
+                    read_to_string(path).ok()
+                } else {
+                    None
+                }
             }
-        })
+            _ => None,
+        }
     }
 }
 impl Handler for WebsiteHandler {
     fn handle_request(&mut self, request: &Request) -> Response {
-        // Response::new(StatusCode::Ok, Some("<h1>TEST</h1>".to_string()))
         match request.method() {
             Method::Get => match request.path() {
                 "/" => Response::new(StatusCode::Ok, self.read_file("index.html")),
                 "/hello" => Response::new(StatusCode::Ok, Some("Hello".to_string())),
-                _ => Response::new(StatusCode::NotFound, None),
+                file_name => Response::new(StatusCode::Ok, self.read_file(file_name)),
             },
             _ => Response::new(StatusCode::NotFound, None),
         }

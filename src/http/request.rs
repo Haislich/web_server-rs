@@ -28,7 +28,7 @@ impl<'buf> Request<'buf> {
     pub const fn method(&self) -> &Method {
         &self.method
     }
-    // pub fn query(&self) -> Option<&Query> {
+    // pub const fn query(&self) -> Option<&Query> {
     //     self.query.as_ref()
     // }
 }

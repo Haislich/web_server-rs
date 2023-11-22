@@ -6,7 +6,7 @@ const BUF_SIZE: usize = 1024;
 pub trait Handler {
     fn handle_request(&mut self, request: &Request) -> Response;
     fn handle_error(&mut self, error: &ParseError) -> Response {
-        println!("Failed to parse request: {error}");
+        eprintln!("Failed to parse request: {error}");
         Response::new(StatusCode::BadRequest, None)
     }
 }
@@ -17,7 +17,7 @@ impl Server {
     pub const fn new(address: String) -> Self {
         Self { address }
     }
-    pub fn run(self, mut handler: impl Handler) {
+    pub fn run(self, mut handler: impl Handler) -> ! {
         println!("Listening on {}", self.address);
         let listener = TcpListener::bind(self.address).unwrap();
         loop {
@@ -28,6 +28,7 @@ impl Server {
                 eprintln!("Error in read {e}");
                 continue;
             }
+            println!("{}", String::from_utf8_lossy(&buf[..]));
             let response = match Request::try_from(&buf[..]) {
                 Ok(request) => handler.handle_request(&request),
                 Err(e) => {
