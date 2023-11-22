@@ -13,7 +13,8 @@ fn get_next_word(request: &str) -> Option<(&str, &str)> {
     None
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(Debug)]
+#[allow(dead_code)]
 pub struct Request<'buf> {
     // This means that the request struct is generic over a lifetime
     method: Method,
@@ -21,15 +22,15 @@ pub struct Request<'buf> {
     query: Option<Query<'buf>>, //Option<&str>, -> Changin from String to &str assures that no useless heap allocation happen.
 }
 impl<'buf> Request<'buf> {
-    pub fn path(&self) -> &str {
+    pub const fn path(&self) -> &str {
         self.path
     }
-    pub fn method(&self) -> &Method {
+    pub const fn method(&self) -> &Method {
         &self.method
     }
-    pub fn query(&self) -> Option<&Query> {
-        self.query.as_ref()
-    }
+    // pub fn query(&self) -> Option<&Query> {
+    //     self.query.as_ref()
+    // }
 }
 impl<'buf> TryFrom<&'buf [u8]> for Request<'buf> {
     // The lifetime here assures us that we cannot deallocate the buffer before deallocating the request.
@@ -37,12 +38,12 @@ impl<'buf> TryFrom<&'buf [u8]> for Request<'buf> {
     fn try_from(buf: &'buf [u8]) -> Result<Request<'buf>, Self::Error> {
         let request = str::from_utf8(buf)?;
 
-        let (method, request) = get_next_word(request).ok_or(ParseError::InvalidRequest)?;
-        let (mut path, request) = get_next_word(request).ok_or(ParseError::InvalidRequest)?;
-        let (protocol, _) = get_next_word(request).ok_or(ParseError::InvalidRequest)?;
+        let (method, request) = get_next_word(request).ok_or(ParseError::Request)?;
+        let (mut path, request) = get_next_word(request).ok_or(ParseError::Request)?;
+        let (protocol, _) = get_next_word(request).ok_or(ParseError::Request)?;
 
         if protocol != "HTTP/1.1" {
-            return Err(ParseError::InvalidProtocol);
+            return Err(ParseError::Protocol);
         }
 
         let method: Method = method.parse()?;
@@ -63,25 +64,24 @@ impl<'buf> TryFrom<&'buf [u8]> for Request<'buf> {
 
 #[derive(Debug)]
 pub enum ParseError {
-    InvalidRequest,
-    InvalidEncoding,
-    InvalidProtocol,
-    InvalidMethod,
+    Request,
+    Encoding,
+    Protocol,
+    Method,
 }
 impl Display for ParseError {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        use ParseError::*;
         match self {
-            InvalidRequest => write!(f, "Invalid Request"),
-            InvalidEncoding => write!(f, "Invalid Encoding"),
-            InvalidProtocol => write!(f, "Invalid Protocol"),
-            InvalidMethod => write!(f, "Invalid Method"),
+            Self::Request => write!(f, "Invalid Request"),
+            Self::Encoding => write!(f, "Invalid Encoding"),
+            Self::Protocol => write!(f, "Invalid Protocol"),
+            Self::Method => write!(f, "Invalid Method"),
         }
     }
 }
 impl Error for ParseError {}
 impl From<Utf8Error> for ParseError {
     fn from(_: Utf8Error) -> Self {
-        Self::InvalidEncoding
+        Self::Encoding
     }
 }

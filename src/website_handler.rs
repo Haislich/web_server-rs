@@ -2,27 +2,28 @@ use crate::{
     http::{Method, Request, Response, StatusCode},
     server::Handler,
 };
+use std::env;
 use std::fs::{canonicalize, read_to_string};
-
 pub struct WebsiteHandler {
     public_path: String,
 }
 impl WebsiteHandler {
-    pub fn new(public_path: String) -> Self {
+    pub const fn new(public_path: String) -> Self {
         Self { public_path }
     }
     fn read_file(&self, file_name: &str) -> Option<String> {
-        let path = format!("{}/{}", self.public_path, file_name);
-        match canonicalize(path) {
-            Ok(path) => {
-                if path.starts_with(&self.public_path) {
-                    read_to_string(path).ok()
-                } else {
-                    None
-                }
+        let path = if env::consts::OS == "windows" {
+            format!("{}\\{}", self.public_path, file_name)
+        } else {
+            format!("{}/{}", self.public_path, file_name)
+        };
+        canonicalize(path).map_or(None, |path| {
+            if path.starts_with(canonicalize(&self.public_path).unwrap()) {
+                read_to_string(path).ok()
+            } else {
+                None
             }
-            Err(_) => None,
-        }
+        })
     }
 }
 impl Handler for WebsiteHandler {

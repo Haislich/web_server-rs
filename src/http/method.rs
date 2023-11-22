@@ -1,6 +1,6 @@
 use super::ParseError;
 use std::str::FromStr;
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub enum Method {
     Get,
     Head,
@@ -16,18 +16,18 @@ impl FromStr for Method {
     type Err = ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        use super::Method::*;
+        //super::Method::{Connect, Delete, Get, Head, Options, Patch, Post, Put, Trace};
         match s {
-            "GET" => Ok(Get),
-            "HEAD" => Ok(Head),
-            "POST" => Ok(Post),
-            "PUT" => Ok(Put),
-            "DELETE" => Ok(Delete),
-            "CONNECT" => Ok(Connect),
-            "OPTIONS" => Ok(Options),
-            "TRACE" => Ok(Trace),
-            "PATCH" => Ok(Patch),
-            _ => Err(ParseError::InvalidMethod),
+            "GET" => Ok(Self::Get),
+            "HEAD" => Ok(Self::Head),
+            "POST" => Ok(Self::Post),
+            "PUT" => Ok(Self::Put),
+            "DELETE" => Ok(Self::Delete),
+            "CONNECT" => Ok(Self::Connect),
+            "OPTIONS" => Ok(Self::Options),
+            "TRACE" => Ok(Self::Trace),
+            "PATCH" => Ok(Self::Patch),
+            _ => Err(ParseError::Method),
         }
     }
 }
