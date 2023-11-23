@@ -22,13 +22,12 @@ impl Server {
         let listener = TcpListener::bind(self.address).unwrap();
         loop {
             let (mut tcp_stream, _socket_addr) = listener.accept().unwrap();
-            eprintln!("Connection accepted.{tcp_stream:?}");
             let mut buf = [0; BUF_SIZE];
             if let Err(e) = tcp_stream.read(&mut buf) {
                 eprintln!("Error in read {e}");
                 continue;
             }
-            println!("{}", String::from_utf8_lossy(&buf[..]));
+            println!("{:?}", String::from_utf8_lossy(&buf[..]));
             let response = match Request::try_from(&buf[..]) {
                 Ok(request) => handler.handle_request(&request),
                 Err(e) => {
